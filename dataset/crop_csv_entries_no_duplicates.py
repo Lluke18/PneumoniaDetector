@@ -11,18 +11,18 @@ patient_ids = [
     if filename.endswith(".png")
 ]
 
+
 selected_df = df[df["patientId"].isin(patient_ids)]
 
-#selected_df.to_csv(
-#    "./train_cropped.csv",
-#    index=False
-#)
+selected_df = selected_df.drop_duplicates(
+    subset="patientId",
+    keep="first"
+)
 
 print("Images:", len(patient_ids))
 print("CSV rows:", len(selected_df))
 
-duplicates = selected_df[
-    selected_df.duplicated("patientId", keep=False)
-]
-
-print(duplicates[["patientId", "Target", "class"]])
+selected_df.to_csv(
+    "./train_cropped_no_duplicates.csv",
+    index=False
+)
