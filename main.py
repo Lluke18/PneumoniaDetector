@@ -28,85 +28,50 @@ from sklearn.svm import LinearSVC, SVC
 
 df = pd.read_csv("dataset/train_cropped_no_duplicates.csv")
 
-df.head()
-df.describe()
-print("dataset shape: ", df.shape)
+print("Dataset shape: ", df.shape)
 
-
-
-class CustomImageDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
-        self.img_labels = pd.read_csv(annotations_file)
+# ==========================================
+# 1. Unified Dataset Class
+# ==========================================
+class PneumoniaDetector(Dataset):
+    def __init__(self, annotations_file, img_dir, transform=None):
+        # Reads the CSV file path directly upon initialization
+        self.df = pd.read_csv(annotations_file)
         self.img_dir = img_dir
         self.transform = transform
-        self.target_transform = target_transform
 
     def __len__(self):
-        return len(self.img_labels)
-
-    def __getitem__(self, idx):
-        img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0] + ".png")
-        image = decode_image(img_path)
-        label = self.img_labels.iloc[idx, 1]
-        if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            label = self.target_transform(label)
-        return image, label
-    
-
-class PneumoniaDataset(Dataset):
-    def __init__(self, dataframe, img_dir, transform=None):
-        self.df = dataframe
-        self.img_dir = img_dir
-        self.transform = transform
-    def __len__(self):
-        # Returns the total number of samples in your dataframe
         return len(self.df)
+
     def __getitem__(self, idx):
-        # 1. Construct the file path using the ID column
-        # Update 'patientId' if your CSV uses a different column name for the ID
+        # Construct the file path using the ID column
         patient_id = str(self.df.iloc[idx]['patientId'])
-        
-        # Append the correct file extension (e.g., .jpg, .png)
         img_name = f"{patient_id}.png" 
         img_path = os.path.join(self.img_dir, img_name)
 
-        # 2. Load the image using OpenCV
+        # Load the image using OpenCV
         image = cv2.imread(img_path)
         
-        # OpenCV loads in BGR, so convert to RGB for standard plotting/processing
+        # Safety check to catch missing images
+        if image is None:
+            raise FileNotFoundError(f"OpenCV could not find or read the image at: {img_path}")
+        
+        # Convert BGR to RGB for standard plotting/processing
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
 
-        # 3. Extract the label
-        # Update 'Target' if your CSV uses a different column name for the label (e.g., 'class')
+        # Extract the label
         label = self.df.iloc[idx]['Target']
 
-        # 4. Apply any PyTorch transformations (resizing, tensor conversion, etc.)
+        # Apply transformations if provided
         if self.transform:
             image = self.transform(image)
-
         
         return image, torch.tensor(label, dtype=torch.long)
 
-
-pneumonia_dataset = PneumoniaDataset(dataframe = df, img_dir = "dataset/New_DS/")
-test_image, test_label = pneumonia_dataset[100]
-plt.imshow(test_image)
-plt.title(f"target is: {test_label} ")
-plt.axis("off")
-plt.show()
-
-train_ds = CustomImageDataset(
-    "dataset/train_cropped_no_duplicates.csv",
-    "dataset/New_DS/"
-)
-
-y_all = train_ds.img_labels["Target"].to_numpy()
-all_indices = np.arange(len(train_ds))
-
-
-
+# ==========================================
+# 2. Split the Data (Train / Val / Test)
+# ==========================================
+# First split: 60% Train, 40% Temp
 train_df, temp_df = train_test_split(
     df,
     test_size=0.40,
@@ -114,6 +79,7 @@ train_df, temp_df = train_test_split(
     stratify=df["Target"]
 )
 
+# Second split: Divide Temp evenly into 20% Val, 20% Test
 val_df, test_df = train_test_split(
     temp_df,
     test_size=0.50,
@@ -121,15 +87,33 @@ val_df, test_df = train_test_split(
     stratify=temp_df["Target"]
 )
 
+# Save the splits to separate CSV files
 train_df.to_csv("dataset/train.csv", index=False)
 val_df.to_csv("dataset/val.csv", index=False)
 test_df.to_csv("dataset/test.csv", index=False)
 
+# ==========================================
+# 3. Instantiate the Datasets
+# ==========================================
+# Use the unified PneumoniaDetector class for all splits
+# Make sure the img_dir points to "dataset/New_DS/" to avoid FileNotFoundError
+train_ds = PneumoniaDetector("dataset/train.csv", "dataset/New_DS/")
+val_ds   = PneumoniaDetector("dataset/val.csv", "dataset/New_DS/")
+test_ds  = PneumoniaDetector("dataset/test.csv", "dataset/New_DS/")
 
-train_ds = CustomImageDataset("dataset/train.csv", "./New_DS/")
-val_ds   = CustomImageDataset("dataset/val.csv", "./New_DS/")
-test_ds  = CustomImageDataset("dataset/test.csv", "./New_DS/")
-
+print("--- Dataset Splits ---")
 print(f"Training samples: {len(train_ds)}")
 print(f"Validation samples: {len(val_ds)}")
 print(f"Testing samples: {len(test_ds)}")
+
+# ==========================================
+# 4. Test the Pipeline
+# ==========================================
+print("\n--- Testing Data Loading ---")
+# Grab a sample from the training set to verify everything works
+test_image, test_label = train_ds[52]
+
+plt.imshow(test_image)
+plt.title(f"Target is: {test_label.item()} ")
+plt.axis("off")
+plt.show()
