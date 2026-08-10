@@ -106,7 +106,7 @@ train_transforms = T.Compose([
     T.ToTensor()
     ])
 
-train_ds = PneumoniaDetector("dataset/train.csv", "dataset/New_DS/", transform=train_transforms)
+train_ds = PneumoniaDetector("dataset/train.csv", "dataset/New_DS/")
 val_ds   = PneumoniaDetector("dataset/val.csv", "dataset/New_DS/")
 test_ds  = PneumoniaDetector("dataset/test.csv", "dataset/New_DS/")
 
