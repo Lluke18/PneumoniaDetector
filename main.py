@@ -97,22 +97,14 @@ plt.title(f"target is: {test_label} ")
 plt.axis("off")
 plt.show()
 
-
-
-
-#---------------------------------------------------------
-
 train_ds = CustomImageDataset(
-    "train_cropped_no_duplicates.csv",
-    "./New_DS/"
+    "dataset/train_cropped_no_duplicates.csv",
+    "dataset/New_DS/"
 )
 
 y_all = train_ds.img_labels["Target"].to_numpy()
 all_indices = np.arange(len(train_ds))
 
-
-
-df = pd.read_csv("train_cropped_no_duplicates.csv")
 
 
 train_df, temp_df = train_test_split(
@@ -129,11 +121,15 @@ val_df, test_df = train_test_split(
     stratify=temp_df["Target"]
 )
 
-train_df.to_csv("train.csv", index=False)
-val_df.to_csv("val.csv", index=False)
-test_df.to_csv("test.csv", index=False)
+train_df.to_csv("dataset/train.csv", index=False)
+val_df.to_csv("dataset/val.csv", index=False)
+test_df.to_csv("dataset/test.csv", index=False)
 
 
-train_ds = CustomImageDataset("train.csv", "./New_DS/")
-val_ds   = CustomImageDataset("val.csv", "./New_DS/")
-test_ds  = CustomImageDataset("test.csv", "./New_DS/")
+train_ds = CustomImageDataset("dataset/train.csv", "./New_DS/")
+val_ds   = CustomImageDataset("dataset/val.csv", "./New_DS/")
+test_ds  = CustomImageDataset("dataset/test.csv", "./New_DS/")
+
+print(f"Training samples: {len(train_ds)}")
+print(f"Validation samples: {len(val_ds)}")
+print(f"Testing samples: {len(test_ds)}")
