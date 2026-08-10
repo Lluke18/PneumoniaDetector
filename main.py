@@ -23,7 +23,7 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC, SVC
-
+import torchvision.transforms as T
 
 
 df = pd.read_csv("dataset/train_cropped_no_duplicates.csv")
@@ -68,10 +68,9 @@ class PneumoniaDetector(Dataset):
         
         return image, torch.tensor(label, dtype=torch.long)
 
-# ==========================================
-# 2. Split the Data (Train / Val / Test)
-# ==========================================
-# First split: 60% Train, 40% Temp
+
+selected_features = ["patientId", "Target", "class", "age", "sex"]
+
 train_df, temp_df = train_test_split(
     df,
     test_size=0.40,
@@ -97,7 +96,17 @@ test_df.to_csv("dataset/test.csv", index=False)
 # ==========================================
 # Use the unified PneumoniaDetector class for all splits
 # Make sure the img_dir points to "dataset/New_DS/" to avoid FileNotFoundError
-train_ds = PneumoniaDetector("dataset/train.csv", "dataset/New_DS/")
+
+train_transforms = T.Compose([
+    T.ToPILImage(),
+    T.RandomRotation(degrees=10),
+    T.RandomRotation(degrees = 10),
+    T.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+    T.Resize((224, 224)),
+    T.ToTensor()
+    ])
+
+train_ds = PneumoniaDetector("dataset/train.csv", "dataset/New_DS/", transform=train_transforms)
 val_ds   = PneumoniaDetector("dataset/val.csv", "dataset/New_DS/")
 test_ds  = PneumoniaDetector("dataset/test.csv", "dataset/New_DS/")
 
@@ -111,9 +120,9 @@ print(f"Testing samples: {len(test_ds)}")
 # ==========================================
 print("\n--- Testing Data Loading ---")
 # Grab a sample from the training set to verify everything works
-test_image, test_label = train_ds[52]
+test_image, test_label = train_ds[6]
 
-plt.imshow(test_image)
-plt.title(f"Target is: {test_label.item()} ")
-plt.axis("off")
-plt.show()
+#plt.imshow(test_image)
+#plt.title(f"Target is: {test_label.item()} ")
+#plt.axis("off")
+#plt.show()
