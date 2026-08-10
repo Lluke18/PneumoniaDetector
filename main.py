@@ -102,6 +102,16 @@ plt.show()
 
 #---------------------------------------------------------
 
+train_ds = CustomImageDataset(
+    "train_cropped_no_duplicates.csv",
+    "./New_DS/"
+)
+
+y_all = train_ds.img_labels["Target"].to_numpy()
+all_indices = np.arange(len(train_ds))
+
+
+
 df = pd.read_csv("train_cropped_no_duplicates.csv")
 
 
