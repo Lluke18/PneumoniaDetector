@@ -19,9 +19,6 @@ def relu(z):
     
     return np.maximum(0, z)
 
-
-
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
@@ -46,9 +43,9 @@ val_loader = DataLoader(val_ds, batch_size = 32, shuffle = False)
 
 train_labels = train_ds.df['Target'].values
 class_weights = compute_class_weight(class_weight="balanced", classes = np.unique(train_labels), y = train_labels)
+manual_weights = [1.0, 5.0]
 
-
-weights_tensor = torch.tensor(class_weights, dtype=torch.float).to(device)
+weights_tensor = torch.tensor(manual_weights, dtype=torch.float).to(device)
 
 criterion = nn.CrossEntropyLoss(weight=weights_tensor) # in course, it is: nn.BCELoss()
 optimizer = optim.Adam(model.parameters(), lr =learning_rate)
@@ -59,6 +56,10 @@ best_val_accuracy = 0.0
 
 print("incepe antrenamentul cu tot cu validare")
 time.sleep(2)
+
+#for the graph:
+train_losses = []
+val_accuracies = []
 
 for epoch in range(num_epochs):
     model.train()
@@ -114,7 +115,7 @@ for epoch in range(num_epochs):
     if val_accuracy > best_val_accuracy:
         print(f" -> Nou scor maxim! Se salvează modelul (Val Acc a crescut de la {best_val_accuracy:.2f}% la {val_accuracy:.2f}%).")
         best_val_accuracy = val_accuracy
-        torch.save(model.state_dict(), "resnet18_best_pneumonia.pth")
+        torch.save(model.state_dict(), "resnet18_secondtry_pneumonia.pth")
 
 print("s-au salvat weightsurile RESNET")
 
