@@ -23,8 +23,11 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC, SVC
-
-
+import torchvision.transforms as T
+import torchvision.models as models
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import torch.nn as nn
+import torch.nn.functional as F
 
 df = pd.read_csv("dataset/train_cropped_no_duplicates.csv")
 
@@ -68,10 +71,9 @@ class PneumoniaDetector(Dataset):
         
         return image, torch.tensor(label, dtype=torch.long)
 
-# ==========================================
-# 2. Split the Data (Train / Val / Test)
-# ==========================================
-# First split: 60% Train, 40% Temp
+
+selected_features = ["patientId", "Target", "class", "age", "sex"]
+
 train_df, temp_df = train_test_split(
     df,
     test_size=0.40,
@@ -97,6 +99,16 @@ test_df.to_csv("dataset/test.csv", index=False)
 # ==========================================
 # Use the unified PneumoniaDetector class for all splits
 # Make sure the img_dir points to "dataset/New_DS/" to avoid FileNotFoundError
+
+train_transforms = T.Compose([
+    T.ToPILImage(),
+    T.RandomRotation(degrees=10),
+    T.RandomRotation(degrees = 10),
+    T.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+    T.Resize((224, 224)),
+    T.ToTensor()
+    ])
+
 train_ds = PneumoniaDetector("dataset/train.csv", "dataset/New_DS/")
 val_ds   = PneumoniaDetector("dataset/val.csv", "dataset/New_DS/")
 test_ds  = PneumoniaDetector("dataset/test.csv", "dataset/New_DS/")
@@ -109,11 +121,62 @@ print(f"Testing samples: {len(test_ds)}")
 # ==========================================
 # 4. Test the Pipeline
 # ==========================================
-print("\n--- Testing Data Loading ---")
+print("Test the model RESNET")
 # Grab a sample from the training set to verify everything works
-test_image, test_label = train_ds[52]
-
+test_image, test_label = train_ds[6]
 plt.imshow(test_image)
-plt.title(f"Target is: {test_label.item()} ")
+plt.title(f"Target is: {"Sanatos" if test_label.item() == 0 else "Pneumonie"} ")
 plt.axis("off")
+plt.show()
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+test_loader = DataLoader(test_ds, batch_size = 32, shuffle = False)
+
+model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+
+num_ftrs = model.fc.in_features
+model.fc = nn.Linear(num_ftrs, 2)
+
+model.load_state_dict(torch.load("resnet18_best_pneumonia.pth", map_location = device))
+
+model.eval()
+
+test_correct = 0
+test_total = 0
+all_true_labels = []
+all_predicted_labels = []
+
+
+with torch.no_grad():
+    for test_images, test_labels in test_loader:
+
+        test_images = test_images.float() / 255.0
+        test_images = test_images.permute(0, 3, 1, 2)
+        test_images = F.interpolate(test_images, size=(224, 224), mode="bilinear", align_corners=False)
+
+        test_images = test_images.to(device)
+        test_labels = test_labels.to(device)
+        
+        test_outputs = model(test_images)
+        _, test_predicted = torch.max(test_outputs, 1)
+        
+        test_total += test_labels.size(0)
+        test_correct += (test_predicted == test_labels).sum().item()
+
+        all_true_labels.extend(test_labels.cpu().numpy())
+        all_predicted_labels.extend(test_predicted.cpu().numpy())
+
+final_test_accuracy = (test_correct / test_total) * 100
+print(f"Rezultatul final este: {final_test_accuracy}")
+
+cm = confusion_matrix(all_true_labels, all_predicted_labels)
+
+disp = ConfusionMatrixDisplay(
+    confusion_matrix=cm, 
+    display_labels=["Sănătos", "Pneumonie"] 
+)
+fig, ax = plt.subplots(figsize=(8, 6))
+disp.plot(cmap=plt.cm.Purples, ax=ax)
+
+plt.title("Matricea de confuzie pentru modelul CNN:", fontsize=14)
 plt.show()
