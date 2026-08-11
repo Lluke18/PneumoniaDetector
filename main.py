@@ -123,11 +123,11 @@ print(f"Testing samples: {len(test_ds)}")
 # ==========================================
 print("Test the model RESNET")
 # Grab a sample from the training set to verify everything works
-#test_image, test_label = train_ds[6]
-#plt.imshow(test_image)
-#plt.title(f"Target is: {test_label.item()} ")
-#plt.axis("off")
-#plt.show()
+test_image, test_label = train_ds[6]
+plt.imshow(test_image)
+plt.title(f"Target is: {"Sanatos" if test_label.item() == 0 else "Pneumonie"} ")
+plt.axis("off")
+plt.show()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 test_loader = DataLoader(test_ds, batch_size = 32, shuffle = False)
