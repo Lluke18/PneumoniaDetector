@@ -33,12 +33,10 @@ df = pd.read_csv("dataset/train_cropped_no_duplicates.csv")
 
 print("Dataset shape: ", df.shape)
 
-# ==========================================
-# 1. Unified Dataset Class
-# ==========================================
+
 class PneumoniaDetector(Dataset):
     def __init__(self, annotations_file, img_dir, transform=None):
-        # Reads the CSV file path directly upon initialization
+        
         self.df = pd.read_csv(annotations_file)
         self.img_dir = img_dir
         self.transform = transform
@@ -47,25 +45,25 @@ class PneumoniaDetector(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx):
-        # Construct the file path using the ID column
+        
         patient_id = str(self.df.iloc[idx]['patientId'])
         img_name = f"{patient_id}.png" 
         img_path = os.path.join(self.img_dir, img_name)
 
-        # Load the image using OpenCV
+        
         image = cv2.imread(img_path)
         
-        # Safety check to catch missing images
+        
         if image is None:
             raise FileNotFoundError(f"OpenCV could not find or read the image at: {img_path}")
         
-        # Convert BGR to RGB for standard plotting/processing
+        
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
 
-        # Extract the label
+        
         label = self.df.iloc[idx]['Target']
 
-        # Apply transformations if provided
+        
         if self.transform:
             image = self.transform(image)
         
@@ -81,7 +79,7 @@ train_df, temp_df = train_test_split(
     stratify=df["Target"]
 )
 
-# Second split: Divide Temp evenly into 20% Val, 20% Test
+
 val_df, test_df = train_test_split(
     temp_df,
     test_size=0.50,
@@ -89,16 +87,12 @@ val_df, test_df = train_test_split(
     stratify=temp_df["Target"]
 )
 
-# Save the splits to separate CSV files
+
 train_df.to_csv("dataset/train.csv", index=False)
 val_df.to_csv("dataset/val.csv", index=False)
 test_df.to_csv("dataset/test.csv", index=False)
 
-# ==========================================
-# 3. Instantiate the Datasets
-# ==========================================
-# Use the unified PneumoniaDetector class for all splits
-# Make sure the img_dir points to "dataset/New_DS/" to avoid FileNotFoundError
+
 
 train_transforms = T.Compose([
     T.ToPILImage(),
@@ -118,11 +112,9 @@ print(f"Training samples: {len(train_ds)}")
 print(f"Validation samples: {len(val_ds)}")
 print(f"Testing samples: {len(test_ds)}")
 
-# ==========================================
-# 4. Test the Pipeline
-# ==========================================
+
 print("Test the model RESNET")
-# Grab a sample from the training set to verify everything works
+
 test_image, test_label = train_ds[6]
 plt.imshow(test_image)
 plt.title(f"Target is: {"Sanatos" if test_label.item() == 0 else "Pneumonie"} ")

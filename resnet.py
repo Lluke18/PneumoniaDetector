@@ -30,13 +30,7 @@ num_ftrs = model.fc.in_features
 model.fc = nn.Linear(num_ftrs, 2)
 
 model = model.to(device)
-#dummy_images = torch.randn(4, 3, 224, 224).to(device)
 
-
-#output = model(dummy_images)
-#print(f"Output shape: {output.shape}")
-
-#Now, we optimize
 learning_rate = 0.00001
 train_loader = DataLoader(train_ds, batch_size = 32, shuffle = True)
 val_loader = DataLoader(val_ds, batch_size = 32, shuffle = False)
@@ -47,7 +41,7 @@ manual_weights = [1.0, 5.0]
 
 weights_tensor = torch.tensor(manual_weights, dtype=torch.float).to(device)
 
-criterion = nn.CrossEntropyLoss(weight=weights_tensor) # in course, it is: nn.BCELoss()
+criterion = nn.CrossEntropyLoss(weight=weights_tensor) # in curs este nn.BCELoss()
 optimizer = optim.Adam(model.parameters(), lr =learning_rate)
 
 
@@ -79,14 +73,14 @@ for epoch in range(num_epochs):
 
         loss = criterion(outputs, labels)
 
-        loss.backward() # BACKWARD PASS
+        loss.backward() 
 
         optimizer.step()
         running_loss += loss.item()
 
     avg_loss = running_loss / len(train_loader)
     print(f" Epoch {epoch+1} Completed. Average Loss: {avg_loss:.4f} ")
-    #Partea cu validare
+  
     model.eval()
     correct_predictions = 0
     total_samples = 0
@@ -119,9 +113,3 @@ for epoch in range(num_epochs):
 
 print("s-au salvat weightsurile RESNET")
 
-
-
-#print("\nÎncepe evaluarea pe setul de validare...")
-
-
-#print(f"final acc pe valdiare este: {accuracy:.2f}%")
